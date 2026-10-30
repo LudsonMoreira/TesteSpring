@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Votação de linguagens</title>
+</head>
+<body>
+
+    <h1>Qual linguagem você mais utiliza?</h1>
+
+    <p>A votação não solicita nome nem e-mail.</p>
+
+    <form id="formVoto">
+        <label for="linguagem">Escolha uma linguagem:</label>
+
+        <select id="linguagem" required>
+            <option value="">Selecione</option>
+            <option>Java</option>
+            <option>Python</option>
+            <option>JavaScript</option>
+            <option>TypeScript</option>
+            <option>PHP</option>
+            <option>C#</option>
+            <option>C++</option>
+            <option>Go</option>
+            <option>Rust</option>
+            <option>SQL</option>
+        </select>
+
+        <button type="submit">Votar</button>
+    </form>
+
+    <p id="mensagem" role="status"></p>
+
+    <h2>Resultado da votação</h2>
+
+    <img id="grafico" alt="Gráfico de votos por linguagem">
+
+    <h2>Votos registrados</h2>
+    <ul id="resultados"></ul>
+
+    <script>
+        const formulario = document.getElementById("formVoto");
+        const mensagem = document.getElementById("mensagem");
+
+        async function atualizar() {
+            const resposta = await fetch("/api/resultados");
+            const dados = await resposta.json();
+
+            const lista = document.getElementById("resultados");
+            lista.replaceChildren();
+
+            if (dados.length === 0) {
+                const item = document.createElement("li");
+                item.textContent = "Ainda não há votos.";
+                lista.appendChild(item);
+            }
+
+            dados.forEach(function (resultado) {
+                const item = document.createElement("li");
+
+                item.textContent =
+                    resultado.linguagem + ": " + resultado.votos + " voto(s)";
+
+                lista.appendChild(item);
+            });
+
+            document.getElementById("grafico").src =
+                "/api/grafico?t=" + Date.now();
+        }
+
+        formulario.addEventListener("submit", async function (evento) {
+            evento.preventDefault();
+
+            mensagem.textContent = "";
+
+            try {
+                const resposta = await fetch("/api/votar", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        linguagem: document.getElementById("linguagem").value
+                    })
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok) {
+                    throw new Error(dados.erro);
+                }
+
+                mensagem.textContent = dados.mensagem;
+
+                formulario.reset();
+
+                await atualizar();
+
+            } catch (erro) {
+                mensagem.textContent = erro.message;
+            }
+        });
+
+        atualizar().catch(function (erro) {
+            mensagem.textContent = "Erro ao carregar os resultados.";
+            console.error(erro);
+        });
+    </script>
+
+</body>
+</html>
